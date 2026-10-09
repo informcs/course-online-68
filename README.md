@@ -22,13 +22,16 @@
 ├── app.py                 # ตัวควบคุมเว็บแอปพลิเคชัน Flask และจัดการ Route
 ├── schema.sql             # คำสั่ง SQL สร้างฐานข้อมูล 5 ตาราง พร้อมข้อมูลตัวอย่างสมมติ
 ├── requirements.txt       # รายการไลบรารีที่จำเป็น (Flask, mysql-connector-python, PyMySQL)
+├── .env.example             # ตัวอย่างค่าตั้งค่า (copy เป็น .env แล้วแก้ตามเครื่องตัวเอง)
 ├── README.md              # คู่มือและเอกสารประกอบการนำเสนอทั้ง 3 ครั้ง
 └── templates/             # หน้าจอเว็บ (Jinja2 Templates) ตกแต่งด้วย Bootstrap 5
     ├── base.html          # โครงหลักและ Navbar
     ├── index.html         # หน้าหลัก ค้นหาคอร์ส และปุ่มทดสอบระบบเทมเพลต (Step 2)
     ├── courses.html       # หน้าจัดการคอร์สเรียน (เพิ่ม, แก้ไข, ลบ, กำหนด Prerequisite)
     ├── learners.html      # หน้าจัดการข้อมูลผู้เรียน
-    ├── enrollments.html   # หน้าบันทึกและจัดการการลงทะเบียนเรียน (M:N)
+    ├── enrollments.html   # หน้าบันทึกและจัดการการลงทะเบียนเรียน (M:N) พร้อมช่องทาง/ยอดชำระเงิน
+    ├── checkout.html      # หน้าชำระเงินและลงทะเบียนเรียนรายคอร์ส (ตรวจ Prerequisite แบบเรียลไทม์)
+    ├── money_management.html # หน้ารายงานการเงิน (ยอดรวม/รายคอร์ส/ช่องทางชำระ/รายชื่อผู้จ่าย)
     └── reports.html       # หน้าแสดงผล 3 รายงานบังคับ พร้อมคำสั่ง SQL สำหรับนำเสนอ
 ```
 
@@ -47,13 +50,16 @@
 1. เปิดโปรแกรมจัดการฐานข้อมูล เช่น **DBeaver**, **MySQL Workbench** หรือ **phpMyAdmin**
 2. เปิดไฟล์ `schema.sql` และรันคำสั่งทั้งหมดเพื่อสร้างฐานข้อมูล `online_course_db` พร้อมตารางและข้อมูลตัวอย่าง
 
-### ขั้นตอนที่ 3: กำหนดค่าการเชื่อมต่อใน `config.py`
-เปิดไฟล์ `config.py` และตรวจสอบข้อมูลผู้ใช้:
+### ขั้นตอนที่ 3: กำหนดค่าการเชื่อมต่อฐานข้อมูล
+`config.py` จะอ่านค่าจาก Environment (ไฟล์ `.env`) ถ้ามี ถ้าไม่มีจะใช้ค่าเริ่มต้นสำหรับ Localhost:
+```bash
+cp .env.example .env   # แล้วแก้ค่าใน .env ตามเครื่องตัวเอง (ถ้าจำเป็น)
+```
 ```python
 DB_HOST = "127.0.0.1"      # หรือ IP Server ของอาจารย์
 DB_PORT = 3306
 DB_USER = "root"           # ชื่อผู้ใช้ฐานข้อมูล
-DB_PASSWORD = ""           # รหัสผ่านฐานข้อมูล (ถ้ามี)
+DB_PASSWORD = "67676767"   # รหัสผ่านฐานข้อมูล (ค่าเริ่มต้นของโปรเจค)
 DB_NAME = "online_course_db"
 ```
 
@@ -117,6 +123,8 @@ erDiagram
         datetime enrollment_date "วันที่ลงทะเบียน"
         string status "ENROLLED / IN_PROGRESS / COMPLETED / DROPPED"
         datetime completion_date "วันที่เรียนจบ"
+        string payment_method "ช่องทางการชำระเงิน (เช่น PromptPay)"
+        decimal amount_paid "จำนวนเงินที่ชำระ (บาท)"
     }
 
     progress {
@@ -171,6 +179,14 @@ results = run_query(sql, (level, max_price))
 3. **การตรวจสอบแบบ Real-time บนหน้าเว็บ:**
    - หน้ารับชำระเงิน `/checkout` จะแสดงสัญลักษณ์สถานะของผู้เรียนแต่ละคนใน Dropdown และแสดงกล่องเตือนสีแดงพร้อมปิดการทำงานของปุ่มชำระเงินทันทีหากผู้เรียนติดเงื่อนไขวิชาบังคับก่อน
    - หน้า `/enrollments` มี Modal ที่เรียก API `/api/check-prerequisite` เพื่อแจ้งเตือนแบบเรียลไทม์
+
+---
+
+### 4.4 หน้ารายงานการเงินเพิ่มเติม (`/money-management`)
+นอกเหนือจาก 3 รายงานบังคับ ระบบมีหน้ารายงานการเงินที่ใช้คอลัมน์ `payment_method` และ `amount_paid` ของตาราง `enrollment` โดยตรง:
+- สรุปยอด (`report_money_management_summary`): จำนวนธุรกรรม, ยอดรายได้รวม (ไม่นับสถานะ `DROPPED`), จำนวนคนกำลังเรียน/เรียนจบ/เพิ่งลงทะเบียน
+- รายได้แยกตามคอร์ส (`report_money_by_course`) และแยกตามช่องทางชำระเงิน (`report_money_by_payment_method`)
+- รายชื่อผู้เรียนที่ชำระเงินแล้ว (`report_paid_learners_status`)
 
 ---
 
