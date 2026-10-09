@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}จัดการผู้เรียน - ระบบลงทะเบียนคอร์สออนไลน์{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold text-dark mb-1">
+            <i class="bi bi-people text-success me-2"></i> จัดการผู้เรียน (Learner Management)
+        </h2>
+        <p class="text-muted mb-0">ดูรายชื่อผู้เรียน เพิ่มผู้เรียนใหม่ แก้ไข และลบข้อมูล</p>
+    </div>
+    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addLearnerModal">
+        <i class="bi bi-person-plus me-1"></i> เพิ่มผู้เรียนใหม่
+    </button>
+</div>
+
+<!-- Learners Table Card -->
+<div class="card shadow-sm border-0">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3" style="width: 70px;">ID</th>
+                    <th>ชื่อ - นามสกุล</th>
+                    <th>อีเมล</th>
+                    <th>เบอร์โทรศัพท์</th>
+                    <th>วันที่สมัคร</th>
+                    <th class="text-end pe-3" style="width: 140px;">จัดการ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for l in learners %}
+                <tr>
+                    <td class="ps-3 fw-bold text-muted">{{ l.learner_id }}</td>
+                    <td class="fw-medium text-dark">
+                        <i class="bi bi-person-circle text-secondary me-1"></i>
+                        {{ l.first_name }} {{ l.last_name }}
+                    </td>
+                    <td><span class="font-monospace text-muted">{{ l.email }}</span></td>
+                    <td>{{ l.phone or '-' }}</td>
+                    <td class="text-muted small">
+                        {{ l.registered_at.strftime('%d/%m/%Y %H:%M') if l.registered_at is not string and l.registered_at else l.registered_at }}
+                    </td>
+                    <td class="text-end pe-3">
+                        <button type="button" class="btn btn-sm btn-outline-secondary me-1" 
+                                data-bs-toggle="modal" data-bs-target="#editLearnerModal{{ l.learner_id }}" title="แก้ไข">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <form action="{{ url_for('delete_learner_route', learner_id=l.learner_id) }}" method="POST" class="d-inline" onsubmit="return confirm('ยืนยันการลบผู้เรียนคนนี้? ประวัติการลงทะเบียนจะถูกลบไปด้วย');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="ลบ">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+
+                <!-- Edit Learner Modal -->
+                <div class="modal fade" id="editLearnerModal{{ l.learner_id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <form action="{{ url_for('edit_learner_route', learner_id=l.learner_id) }}" method="POST">
+                                <div class="modal-header">
+                                    <h5 class="modal-title fw-bold">แก้ไขข้อมูลผู้เรียน: {{ l.first_name }} {{ l.last_name }}</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-6">
+                                            <label class="form-label">ชื่อจริง</label>
+                                            <input type="text" name="first_name" class="form-control" value="{{ l.first_name }}" required>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label">นามสกุล</label>
+                                            <input type="text" name="last_name" class="form-control" value="{{ l.last_name }}" required>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">อีเมล</label>
+                                        <input type="email" name="email" class="form-control" value="{{ l.email }}" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">เบอร์โทรศัพท์</label>
+                                        <input type="text" name="phone" class="form-control" value="{{ l.phone or '' }}">
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-light border" data-bs-dismiss="modal">ยกเลิก</button>
+                                    <button type="submit" class="btn btn-success">บันทึกการแก้ไข</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Learner Modal -->
+<div class="modal fade" id="addLearnerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form action="{{ url_for('add_learner_route') }}" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-person-plus me-1 text-success"></i> เพิ่มผู้เรียนใหม่</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label">ชื่อจริง</label>
+                            <input type="text" name="first_name" class="form-control" placeholder="เช่น กิตติ" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">นามสกุล</label>
+                            <input type="text" name="last_name" class="form-control" placeholder="เช่น มั่นคง" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">อีเมล</label>
+                        <input type="email" name="email" class="form-control" placeholder="kitti.m@example.com" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">เบอร์โทรศัพท์</label>
+                        <input type="text" name="phone" class="form-control" placeholder="08XXXXXXXX">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light border" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-success">เพิ่มผู้เรียน</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block title %}จัดการคอร์สเรียน - ระบบลงทะเบียนคอร์สออนไลน์{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold text-dark mb-1">
+            <i class="bi bi-book text-primary me-2"></i> จัดการคอร์สเรียน (Course Management)
+        </h2>
+        <p class="text-muted mb-0">เพิ่ม แก้ไข ลบ และกำหนดวิชาบังคับก่อน (Prerequisite Self-reference)</p>
+    </div>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCourseModal">
+        <i class="bi bi-plus-circle me-1"></i> เพิ่มคอร์สใหม่
+    </button>
+</div>
+
+<!-- Courses Table Card -->
+<div class="card shadow-sm border-0">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3" style="width: 70px;">ID</th>
+                    <th>รหัสวิชา</th>
+                    <th>ชื่อคอร์ส</th>
+                    <th>ระดับ</th>
+                    <th>ราคา</th>
+                    <th>วิชาบังคับก่อน (Prerequisite)</th>
+                    <th class="text-end pe-3" style="width: 140px;">จัดการ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in courses %}
+                <tr>
+                    <td class="ps-3 fw-bold text-muted">{{ c.course_id }}</td>
+                    <td><span class="badge bg-secondary font-monospace">{{ c.course_code }}</span></td>
+                    <td class="fw-medium text-dark">{{ c.title }}</td>
+                    <td>
+                        {% if c.level == 'Beginner' %}
+                            <span class="badge badge-beginner">Beginner</span>
+                        {% elif c.level == 'Intermediate' %}
+                            <span class="badge badge-intermediate">Intermediate</span>
+                        {% else %}
+                            <span class="badge badge-advanced">Advanced</span>
+                        {% endif %}
+                    </td>
+                    <td class="fw-bold text-success">฿{{ "{:,.2f}".format(c.price) }}</td>
+                    <td>
+                        {% if c.prerequisite_title %}
+                            <span class="badge bg-info-subtle text-info border border-info-subtle">
+                                <i class="bi bi-link-45deg"></i> {{ c.prerequisite_code ~ ' - ' if c.prerequisite_code else '' }}{{ c.prerequisite_title }}
+                            </span>
+                        {% else %}
+                            <span class="text-muted small">- ไม่มี -</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end pe-3">
+                        <button type="button" class="btn btn-sm btn-outline-secondary me-1" 
+                                data-bs-toggle="modal" data-bs-target="#editModal{{ c.course_id }}" title="แก้ไข">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <form action="{{ url_for('delete_course_route', course_id=c.course_id) }}" method="POST" class="d-inline" onsubmit="return confirm('ยืนยันการลบคอร์สเรียนนี้? ข้อมูลการลงทะเบียนที่เกี่ยวข้องจะถูกลบไปด้วย');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="ลบ">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+
+                <!-- Edit Modal for this course -->
+                <div class="modal fade" id="editModal{{ c.course_id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <form action="{{ url_for('edit_course_route', course_id=c.course_id) }}" method="POST">
+                                <div class="modal-header">
+                                    <h5 class="modal-title fw-bold">แก้ไขคอร์ส: {{ c.course_code }}</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">รหัสวิชา</label>
+                                        <input type="text" name="course_code" class="form-control" value="{{ c.course_code }}" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">ชื่อคอร์ส</label>
+                                        <input type="text" name="title" class="form-control" value="{{ c.title }}" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">รายละเอียด</label>
+                                        <textarea name="description" class="form-control" rows="3">{{ c.description }}</textarea>
+                                    </div>
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-6">
+                                            <label class="form-label">ราคา (บาท)</label>
+                                            <input type="number" step="0.01" name="price" class="form-control" value="{{ c.price }}" required>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label">ระดับความยาก</label>
+                                            <select name="level" class="form-select">
+                                                <option value="Beginner" {% if c.level == 'Beginner' %}selected{% endif %}>Beginner</option>
+                                                <option value="Intermediate" {% if c.level == 'Intermediate' %}selected{% endif %}>Intermediate</option>
+                                                <option value="Advanced" {% if c.level == 'Advanced' %}selected{% endif %}>Advanced</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">วิชาบังคับก่อน (Prerequisite Self-reference)</label>
+                                        <select name="prerequisite_course_id" class="form-select">
+                                            <option value="">-- ไม่มีวิชาบังคับก่อน --</option>
+                                            {% for other in courses %}
+                                                {% if other.course_id != c.course_id %}
+                                                <option value="{{ other.course_id }}" {% if c.prerequisite_course_id == other.course_id %}selected{% endif %}>
+                                                    {{ other.course_code }} - {{ other.title }}
+                                                </option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
+                                        <div class="form-text small">ชี้กลับมาที่ course_id ในตารางเดียวกัน</div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-light border" data-bs-dismiss="modal">ยกเลิก</button>
+                                    <button type="submit" class="btn btn-primary">บันทึกการแก้ไข</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Course Modal -->
+<div class="modal fade" id="addCourseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form action="{{ url_for('add_course_route') }}" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-plus-circle me-1 text-primary"></i> เพิ่มคอร์สเรียนใหม่</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">รหัสวิชา (Course Code)</label>
+                        <input type="text" name="course_code" class="form-control" placeholder="เช่น CS111" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">ชื่อคอร์สเรียน (Title)</label>
+                        <input type="text" name="title" class="form-control" placeholder="เช่น Cloud Computing พื้นฐาน" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">รายละเอียดคอร์ส</label>
+                        <textarea name="description" class="form-control" rows="3" placeholder="อธิบายเนื้อหาและเป้าหมายของคอร์ส"></textarea>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label">ราคา (บาท)</label>
+                            <input type="number" step="0.01" name="price" class="form-control" value="0.00" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">ระดับความยาก</label>
+                            <select name="level" class="form-select">
+                                <option value="Beginner">Beginner</option>
+                                <option value="Intermediate">Intermediate</option>
+                                <option value="Advanced">Advanced</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">วิชาบังคับก่อน (Prerequisite Self-reference)</label>
+                        <select name="prerequisite_course_id" class="form-select">
+                            <option value="">-- ไม่มีวิชาบังคับก่อน --</option>
+                            {% for other in courses %}
+                            <option value="{{ other.course_id }}">{{ other.course_code }} - {{ other.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light border" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary">เพิ่มคอร์ส</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

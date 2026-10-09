@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+
+{% block title %}3 รายงานบังคับ - ระบบลงทะเบียนคอร์สออนไลน์{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2 class="fw-bold text-dark mb-1">
+        <i class="bi bi-bar-chart-line-fill text-warning me-2"></i> รายงานบังคับ 3 รายการ (Mandatory Reports)
+    </h2>
+    <p class="text-muted mb-0">รายงานเชิงวิเคราะห์ข้อมูลสำหรับเตรียมนำเสนอครั้งที่ 2 และครั้งที่ 3</p>
+</div>
+
+<!-- Navigation Tabs for Reports -->
+<ul class="nav nav-pills mb-4 bg-white p-2 rounded-3 border shadow-sm" id="reportTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active fw-medium" id="report1-tab" data-bs-toggle="pill" data-bs-target="#report1" type="button" role="tab">
+            <i class="bi bi-fire me-1 text-danger"></i> 1. คอร์สยอดนิยม (Popular Courses)
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-medium" id="report2-tab" data-bs-toggle="pill" data-bs-target="#report2" type="button" role="tab">
+            <i class="bi bi-award-fill me-1 text-success"></i> 2. อัตราการเรียนจบ (Completion Rate)
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-medium" id="report3-tab" data-bs-toggle="pill" data-bs-target="#report3" type="button" role="tab">
+            <i class="bi bi-diagram-3-fill me-1 text-primary"></i> 3. วิชาบังคับก่อน (Prerequisite Self-JOIN)
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="reportTabsContent">
+
+    <!-- ========================================== -->
+    <!-- REPORT 1: คอร์สยอดนิยม ตามจำนวนผู้ลงทะเบียน -->
+    <!-- ========================================== -->
+    <div class="tab-pane fade show active" id="report1" role="tabpanel">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold text-dark">
+                    <i class="bi bi-fire text-danger me-2"></i> รายงานที่ 1: คอร์สยอดนิยมตามจำนวนผู้ลงทะเบียน
+                </h5>
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2">
+                    JOIN + GROUP BY + COUNT
+                </span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">
+                    จัดอันดับคอร์สเรียนที่มีผู้ลงทะเบียนเรียนมากที่สุด ช่วยให้ฝ่ายบริหารทราบว่าคอร์สใดได้รับความนิยมสูง
+                </p>
+
+                <!-- Collapsible SQL Query Box -->
+                <div class="accordion mb-3" id="accordionSql1">
+                    <div class="accordion-item border">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed py-2 small fw-bold text-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSql1">
+                                <i class="bi bi-code-slash me-2"></i> คลิกเพื่อดูคำสั่ง SQL (สำหรับอธิบายนิสิต/อาจารย์)
+                            </button>
+                        </h2>
+                        <div id="collapseSql1" class="accordion-collapse collapse" data-bs-parent="#accordionSql1">
+                            <div class="accordion-body p-0">
+                                <pre class="sql-box m-0"><code>SELECT 
+    c.course_id,
+    c.course_code,
+    c.title AS course_title,
+    c.level,
+    c.price,
+    COUNT(e.enrollment_id) AS total_enrolled
+FROM course c
+LEFT JOIN enrollment e ON c.course_id = e.course_id
+GROUP BY 
+    c.course_id, 
+    c.course_code, 
+    c.title, 
+    c.level, 
+    c.price
+ORDER BY total_enrolled DESC, c.course_code ASC;</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table of Results -->
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 80px;">อันดับ</th>
+                                <th>รหัสวิชา</th>
+                                <th>ชื่อคอร์สเรียน</th>
+                                <th>ระดับความยาก</th>
+                                <th>ราคา</th>
+                                <th class="text-center" style="width: 180px;">จำนวนผู้ลงทะเบียน</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in popular_courses %}
+                            <tr>
+                                <td>
+                                    {% if loop.index == 1 %}
+                                        <span class="badge bg-warning text-dark fs-6"><i class="bi bi-trophy-fill"></i> #1</span>
+                                    {% elif loop.index == 2 %}
+                                        <span class="badge bg-secondary fs-6">#2</span>
+                                    {% elif loop.index == 3 %}
+                                        <span class="badge bg-danger-subtle text-danger fs-6">#3</span>
+                                    {% else %}
+                                        <span class="text-muted fw-bold ps-2">#{{ loop.index }}</span>
+                                    {% endif %}
+                                </td>
+                                <td><span class="badge bg-secondary font-monospace">{{ r.course_code }}</span></td>
+                                <td class="fw-bold text-dark">{{ r.course_title }}</td>
+                                <td>
+                                    {% if r.level == 'Beginner' %}
+                                        <span class="badge badge-beginner">Beginner</span>
+                                    {% elif r.level == 'Intermediate' %}
+                                        <span class="badge badge-intermediate">Intermediate</span>
+                                    {% else %}
+                                        <span class="badge badge-advanced">Advanced</span>
+                                    {% endif %}
+                                </td>
+                                <td>฿{{ "{:,.2f}".format(r.price) }}</td>
+                                <td class="text-center">
+                                    <span class="badge bg-primary fs-6 px-3 py-2 rounded-pill">
+                                        {{ r.total_enrolled }} คน
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- REPORT 2: อัตราการเรียนจบ ของแต่ละคอร์ส -->
+    <!-- ========================================== -->
+    <div class="tab-pane fade" id="report2" role="tabpanel">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold text-dark">
+                    <i class="bi bi-award-fill text-success me-2"></i> รายงานที่ 2: อัตราการเรียนจบของแต่ละคอร์ส (Completion Rate)
+                </h5>
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2">
+                    GROUP BY + คำนวณสัดส่วน (%)
+                </span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">
+                    คำนวณสัดส่วนผู้เรียนที่จบหลักสูตรเทียบกับจำนวนผู้ลงทะเบียนทั้งหมดในคอร์สนั้น ๆ โดยใช้สูตร: <code>(จำนวนคนที่จบ / จำนวนคนที่ลงทะเบียน) * 100</code>
+                </p>
+
+                <!-- Collapsible SQL Query Box -->
+                <div class="accordion mb-3" id="accordionSql2">
+                    <div class="accordion-item border">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed py-2 small fw-bold text-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSql2">
+                                <i class="bi bi-code-slash me-2"></i> คลิกเพื่อดูคำสั่ง SQL (สำหรับอธิบายนิสิต/อาจารย์)
+                            </button>
+                        </h2>
+                        <div id="collapseSql2" class="accordion-collapse collapse" data-bs-parent="#accordionSql2">
+                            <div class="accordion-body p-0">
+                                <pre class="sql-box m-0"><code>SELECT 
+    c.course_id,
+    c.course_code,
+    c.title AS course_title,
+    COUNT(e.enrollment_id) AS total_enrolled,
+    SUM(CASE WHEN e.status = 'COMPLETED' THEN 1 ELSE 0 END) AS total_completed,
+    SUM(CASE WHEN e.status = 'IN_PROGRESS' THEN 1 ELSE 0 END) AS total_in_progress,
+    SUM(CASE WHEN e.status = 'DROPPED' THEN 1 ELSE 0 END) AS total_dropped,
+    ROUND(
+        (SUM(CASE WHEN e.status = 'COMPLETED' THEN 1 ELSE 0 END) * 100.0) 
+        / NULLIF(COUNT(e.enrollment_id), 0), 2
+    ) AS completion_rate_percentage
+FROM course c
+JOIN enrollment e ON c.course_id = e.course_id
+GROUP BY 
+    c.course_id, 
+    c.course_code, 
+    c.title
+ORDER BY completion_rate_percentage DESC, total_enrolled DESC;</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table of Results -->
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>รหัสวิชา</th>
+                                <th>ชื่อคอร์สเรียน</th>
+                                <th class="text-center">ลงทะเบียนทั้งหมด</th>
+                                <th class="text-center">จบแล้ว (Completed)</th>
+                                <th class="text-center">กำลังเรียน (In Progress)</th>
+                                <th class="text-center">ถอน (Dropped)</th>
+                                <th style="width: 220px;">อัตราการเรียนจบ (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in completion_rates %}
+                            <tr>
+                                <td><span class="badge bg-secondary font-monospace">{{ c.course_code }}</span></td>
+                                <td class="fw-bold text-dark">{{ c.course_title }}</td>
+                                <td class="text-center fw-semibold">{{ c.total_enrolled }}</td>
+                                <td class="text-center text-success fw-bold">{{ c.total_completed }}</td>
+                                <td class="text-center text-warning fw-bold">{{ c.total_in_progress }}</td>
+                                <td class="text-center text-muted">{{ c.total_dropped }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="progress flex-grow-1" style="height: 10px;">
+                                            <div class="progress-bar bg-success" role="progressbar" 
+                                                 style="width: {{ c.completion_rate_percentage or 0 }}%;" 
+                                                 aria-valuenow="{{ c.completion_rate_percentage or 0 }}" 
+                                                 aria-valuemin="0" aria-valuemax="100">
+                                            </div>
+                                        </div>
+                                        <span class="fw-bold text-success small" style="min-width: 50px;">
+                                            {{ c.completion_rate_percentage or 0 }}%
+                                        </span>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- REPORT 3: คอร์สพร้อมชื่อวิชาที่เป็น Prerequisite -->
+    <!-- ========================================== -->
+    <div class="tab-pane fade" id="report3" role="tabpanel">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold text-dark">
+                    <i class="bi bi-diagram-3-fill text-primary me-2"></i> รายงานที่ 3: คอร์สพร้อมชื่อวิชาที่เป็น Prerequisite
+                </h5>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2">
+                    Self-JOIN ตาราง course
+                </span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">
+                    แสดงโครงสร้างหลักสูตรและลำดับการเรียน โดยเชื่อมโยง <code>course</code> กลับมาหา <code>course</code> ตัวเองด้วย <code>prerequisite_course_id</code>
+                </p>
+
+                <!-- Collapsible SQL Query Box -->
+                <div class="accordion mb-3" id="accordionSql3">
+                    <div class="accordion-item border">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed py-2 small fw-bold text-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSql3">
+                                <i class="bi bi-code-slash me-2"></i> คลิกเพื่อดูคำสั่ง SQL (สำหรับอธิบายนิสิต/อาจารย์)
+                            </button>
+                        </h2>
+                        <div id="collapseSql3" class="accordion-collapse collapse" data-bs-parent="#accordionSql3">
+                            <div class="accordion-body p-0">
+                                <pre class="sql-box m-0"><code>SELECT 
+    c.course_id,
+    c.course_code,
+    c.title AS course_title,
+    c.level AS course_level,
+    c.price,
+    p.course_code AS prerequisite_code,
+    COALESCE(p.title, 'ไม่มีวิชาบังคับก่อน') AS prerequisite_title,
+    COALESCE(p.level, '-') AS prerequisite_level
+FROM course c
+LEFT JOIN course p ON c.prerequisite_course_id = p.course_id
+ORDER BY c.course_id ASC;</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table of Results -->
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>รหัสวิชา</th>
+                                <th>ชื่อคอร์สเรียน</th>
+                                <th>ระดับ</th>
+                                <th>ราคา</th>
+                                <th>รหัสวิชาบังคับก่อน</th>
+                                <th>ชื่อวิชาที่ต้องผ่านก่อน (Prerequisite Course)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in prerequisite_courses %}
+                            <tr>
+                                <td><span class="badge bg-secondary font-monospace">{{ p.course_code }}</span></td>
+                                <td class="fw-bold text-dark">{{ p.course_title }}</td>
+                                <td>
+                                    {% if p.course_level == 'Beginner' %}
+                                        <span class="badge badge-beginner">Beginner</span>
+                                    {% elif p.course_level == 'Intermediate' %}
+                                        <span class="badge badge-intermediate">Intermediate</span>
+                                    {% else %}
+                                        <span class="badge badge-advanced">Advanced</span>
+                                    {% endif %}
+                                </td>
+                                <td>฿{{ "{:,.2f}".format(p.price) }}</td>
+                                <td>
+                                    {% if p.prerequisite_code %}
+                                        <span class="badge bg-dark font-monospace">{{ p.prerequisite_code }}</span>
+                                    {% else %}
+                                        <span class="text-muted small">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if p.prerequisite_code %}
+                                        <span class="text-primary fw-medium">
+                                            <i class="bi bi-arrow-return-right me-1"></i> {{ p.prerequisite_title }}
+                                        </span>
+                                        <small class="text-muted">({{ p.prerequisite_level }})</small>
+                                    {% else %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                            <i class="bi bi-unlock me-1"></i> ไม่มีวิชาบังคับก่อน
+                                        </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

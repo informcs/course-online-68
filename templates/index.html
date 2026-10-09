@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}หน้าหลัก - ระบบลงทะเบียนคอร์สออนไลน์{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="p-4 p-md-5 mb-4 rounded-3 bg-white border shadow-sm">
+    <div class="row align-items-center">
+        <div class="col-lg-8">
+            <h1 class="display-6 fw-bold text-primary mb-2">
+                <i class="bi bi-mortarboard me-2"></i> ระบบลงทะเบียนคอร์สออนไลน์
+            </h1>
+            <p class="lead text-secondary mb-3">
+                ยินดีต้อนรับสู่ระบบบริหารจัดการคอร์สเรียนออนไลน์ เชื่อมต่อฐานข้อมูลเชิงสัมพันธ์ MySQL รองรับการค้นหา จัดการข้อมูลผู้เรียน และรายงานสถิติเชิงลึก
+            </p>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{{ url_for('courses') }}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-book me-1"></i> จัดการคอร์สเรียน
+                </a>
+                <a href="{{ url_for('learners') }}" class="btn btn-outline-success btn-sm">
+                    <i class="bi bi-people me-1"></i> จัดการผู้เรียน
+                </a>
+                <a href="{{ url_for('reports') }}" class="btn btn-warning btn-sm fw-bold">
+                    <i class="bi bi-graph-up me-1"></i> ดู 3 รายงานบังคับ
+                </a>
+                <a href="{{ url_for('money_management') }}" class="btn btn-info btn-sm fw-bold text-white">
+                    <i class="bi bi-cash-stack me-1"></i> Money Management (การเงิน)
+                </a>
+            </div>
+        </div>
+        <div class="col-lg-4 text-center mt-3 mt-lg-0">
+            <div class="p-3 bg-light rounded-3 border">
+                <h6 class="text-muted text-uppercase mb-2" style="font-size: 0.8rem; letter-spacing: 1px;">ทดสอบระบบเทมเพลต</h6>
+                <p class="small text-muted mb-2">สำหรับขั้นตอนที่ 2: ตรวจสอบการรันครั้งแรก</p>
+                <a href="{{ url_for('index', demo_unimplemented=1) }}" class="btn btn-outline-secondary btn-sm w-100">
+                    <i class="bi bi-bug me-1"></i> กดค้นหาแบบจำลอง (ยังไม่ได้เขียน SQL)
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- กล่องแจ้งเตือนกรณีทดสอบแบบจำลองขั้นตอนที่ 2 -->
+{% if test_mode %}
+<div class="alert alert-warning border-warning shadow-sm mb-4" role="alert">
+    <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-exclamation-octagon-fill fs-3 text-warning"></i>
+        <div>
+            <h5 class="alert-heading mb-1 fw-bold">ยังไม่ได้เขียน SQL</h5>
+            <div class="small">
+                ข้อความนี้แสดงตามสเปกขั้นตอนที่ 2: <em>"หากกดค้นหาแล้วขึ้นข้อความแจ้งว่า 'ยังไม่ได้เขียน SQL' ถือว่าระบบเทมเพลตรันสำเร็จเรียบร้อย"</em>
+            </div>
+            <a href="{{ url_for('index') }}" class="btn btn-sm btn-dark mt-2">
+                <i class="bi bi-arrow-counterclockwise me-1"></i> กลับสู่โหมดรันข้อมูลจริงจากฐานข้อมูล
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Course Search Section -->
+<div class="card mb-4 border-0 shadow-sm">
+    <div class="card-body p-4 bg-white rounded-3">
+        <form action="{{ url_for('index') }}" method="GET" class="row g-2 align-items-center">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text" name="q" class="form-control border-start-0 ps-0" 
+                           placeholder="ค้นหาชื่อคอร์ส, รหัสวิชา (เช่น CS101), หรือคำอธิบาย..." 
+                           value="{{ search_query }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="level" class="form-select" onchange="this.form.submit()">
+                    <option value="">ทุกระดับความยาก (All Levels)</option>
+                    <option value="Beginner" {% if selected_level == 'Beginner' %}selected{% endif %}>Beginner (ผู้เริ่มต้น)</option>
+                    <option value="Intermediate" {% if selected_level == 'Intermediate' %}selected{% endif %}>Intermediate (ระดับกลาง)</option>
+                    <option value="Advanced" {% if selected_level == 'Advanced' %}selected{% endif %}>Advanced (ขั้นสูง)</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search me-1"></i> ค้นหา
+                </button>
+                {% if search_query or selected_level %}
+                <a href="{{ url_for('index') }}" class="btn btn-light border" title="ล้างการค้นหา">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Courses Grid -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="fw-bold mb-0 text-dark">
+        <i class="bi bi-grid-fill text-primary me-2"></i> รายการคอร์สเรียนทั้งหมด
+    </h4>
+    <span class="text-muted small">พบ {{ courses|length }} คอร์ส</span>
+</div>
+
+{% if not courses %}
+<div class="card text-center py-5 border-dashed">
+    <div class="card-body">
+        <i class="bi bi-folder-x display-4 text-muted mb-3"></i>
+        <h5 class="text-secondary">ไม่พบคอร์สเรียนที่ค้นหา</h5>
+        <p class="text-muted small">กรุณาลองเปลี่ยนคำค้นหา หรือตรวจสอบการเชื่อมต่อฐานข้อมูลใน config.py</p>
+        <a href="{{ url_for('index') }}" class="btn btn-sm btn-outline-primary">แสดงทั้งหมด</a>
+    </div>
+</div>
+{% else %}
+<div class="row g-4">
+    {% for c in courses %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 d-flex flex-column">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="badge bg-secondary font-monospace">{{ c.course_code }}</span>
+                    {% if c.level == 'Beginner' %}
+                        <span class="badge badge-beginner">Beginner</span>
+                    {% elif c.level == 'Intermediate' %}
+                        <span class="badge badge-intermediate">Intermediate</span>
+                    {% else %}
+                        <span class="badge badge-advanced">Advanced</span>
+                    {% endif %}
+                </div>
+
+                <h5 class="card-title fw-bold text-dark mb-2">{{ c.title }}</h5>
+                <p class="card-text text-muted small mb-3 text-truncate-3" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; height: 4.5em;">
+                    {{ c.description or 'ไม่มีคำอธิบาย' }}
+                </p>
+
+                <!-- Prerequisite info -->
+                <div class="p-2 rounded bg-light border mb-3 small">
+                    <span class="text-muted"><i class="bi bi-link-45deg"></i> วิชาบังคับก่อน:</span>
+                    {% if c.prerequisite_title %}
+                        <div class="mt-1">
+                            <span class="badge bg-warning-subtle text-dark border border-warning-subtle text-wrap text-start">
+                                <i class="bi bi-lock-fill text-warning me-1"></i>{{ c.prerequisite_code or 'วิชาบังคับก่อน' }}: {{ c.prerequisite_title }}
+                            </span>
+                        </div>
+                    {% else %}
+                        <strong class="d-block text-truncate text-success mt-1">
+                            <i class="bi bi-check2-circle me-1"></i> ไม่มี (ลงเรียนได้ทันที)
+                        </strong>
+                    {% endif %}
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top">
+                    <div>
+                        <span class="text-muted small">ราคา:</span>
+                        <span class="fw-bold text-success fs-5">฿{{ "{:,.2f}".format(c.price) }}</span>
+                    </div>
+                    <a href="{{ url_for('checkout', course_id=c.course_id) }}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-credit-card me-1"></i> ลงทะเบียนเรียน
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}

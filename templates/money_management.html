@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+
+{% block title %}Money Management - การเงินและรายได้{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold text-dark mb-1">
+            <i class="bi bi-cash-stack text-success me-2"></i> Money Management (การบริหารจัดการเงินและรายได้)
+        </h2>
+        <p class="text-muted mb-0">รายงานภาพรวมรายได้ทางการเงิน ข้อมูลผู้เรียนที่ชำระเงินแล้ว และคอร์สที่กำลังเรียนอยู่</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('reports') }}" class="btn btn-outline-warning btn-sm">
+            <i class="bi bi-bar-chart-line me-1"></i> ดู 3 รายงานบังคับเดิม
+        </a>
+        <a href="{{ url_for('index') }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-house me-1"></i> หน้าหลัก
+        </a>
+    </div>
+</div>
+
+<!-- 4 KPI Summary Cards -->
+<div class="row g-3 mb-4">
+    <!-- Total Revenue -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm bg-white h-100 border-start border-success border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small fw-bold text-uppercase">ยอดรวมรายได้ทั้งหมด</span>
+                    <span class="badge bg-success bg-opacity-10 text-success p-2 rounded-circle">
+                        <i class="bi bi-cash-coin fs-5"></i>
+                    </span>
+                </div>
+                <div class="display-6 fw-bold text-success">
+                    ฿{{ "{:,.2f}".format(summary.total_revenue) }}
+                </div>
+                <div class="small text-muted mt-2">
+                    <i class="bi bi-graph-up-arrow text-success me-1"></i> รวมทุกคอร์สที่ไม่ถูกยกเลิก (Non-dropped)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Paid Learners -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm bg-white h-100 border-start border-primary border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small fw-bold text-uppercase">ผู้เรียนที่ชำระเงินแล้ว</span>
+                    <span class="badge bg-primary bg-opacity-10 text-primary p-2 rounded-circle">
+                        <i class="bi bi-people-fill fs-5"></i>
+                    </span>
+                </div>
+                <div class="display-6 fw-bold text-primary">
+                    {{ summary.total_paid_learners }} <span class="fs-5 text-muted fw-normal">คน</span>
+                </div>
+                <div class="small text-muted mt-2">
+                    <i class="bi bi-receipt text-primary me-1"></i> รวมทั้งสิ้น <strong>{{ summary.total_transactions }}</strong> รายการลงทะเบียน
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active In Progress -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm bg-white h-100 border-start border-warning border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small fw-bold text-uppercase">กำลังเรียนอยู่ขณะนี้</span>
+                    <span class="badge bg-warning bg-opacity-10 text-warning p-2 rounded-circle">
+                        <i class="bi bi-play-circle-fill fs-5"></i>
+                    </span>
+                </div>
+                <div class="display-6 fw-bold text-warning">
+                    {{ summary.active_studying_count }} <span class="fs-5 text-muted fw-normal">คน</span>
+                </div>
+                <div class="small text-muted mt-2">
+                    <i class="bi bi-hourglass-split text-warning me-1"></i> สถานะ <strong>IN_PROGRESS</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Completed -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm bg-white h-100 border-start border-info border-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small fw-bold text-uppercase">เรียนจบหลักสูตรแล้ว</span>
+                    <span class="badge bg-info bg-opacity-10 text-info p-2 rounded-circle">
+                        <i class="bi bi-check-circle-fill fs-5"></i>
+                    </span>
+                </div>
+                <div class="display-6 fw-bold text-info">
+                    {{ summary.completed_count }} <span class="fs-5 text-muted fw-normal">คน</span>
+                </div>
+                <div class="small text-muted mt-2">
+                    <i class="bi bi-mortarboard-fill text-info me-1"></i> สถานะ <strong>COMPLETED</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Section 1 & 2: Course Revenue Table & Payment Method Breakdown -->
+<div class="row g-4 mb-4">
+    <!-- Course Revenue Summary -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold text-dark mb-0">
+                    <i class="bi bi-bar-chart-fill text-primary me-2"></i> สรุปรายได้แยกตามแต่ละคอร์สเรียน
+                </h5>
+                <span class="badge bg-light text-muted border">ทั้งหมด {{ by_course|length }} คอร์ส</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">รหัสวิชา</th>
+                            <th>ชื่อคอร์ส</th>
+                            <th>ระดับ</th>
+                            <th>ราคา/คน</th>
+                            <th class="text-center">ผู้เรียน (คน)</th>
+                            <th class="text-center">กำลังเรียน</th>
+                            <th class="text-end pe-3">รายได้รวม</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in by_course %}
+                        <tr>
+                            <td class="ps-3"><span class="badge bg-secondary font-monospace">{{ c.course_code }}</span></td>
+                            <td class="fw-medium text-dark">{{ c.course_title }}</td>
+                            <td>
+                                {% if c.level == 'Beginner' %}
+                                    <span class="badge badge-beginner">Beginner</span>
+                                {% elif c.level == 'Intermediate' %}
+                                    <span class="badge badge-intermediate">Intermediate</span>
+                                {% else %}
+                                    <span class="badge badge-advanced">Advanced</span>
+                                {% endif %}
+                            </td>
+                            <td class="fw-bold text-secondary">฿{{ "{:,.2f}".format(c.price) }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-primary rounded-pill px-2 py-1">{{ c.total_enrolled }}</span>
+                            </td>
+                            <td class="text-center">
+                                {% if c.active_count > 0 %}
+                                    <span class="badge badge-in-progress">{{ c.active_count }}</span>
+                                {% else %}
+                                    <span class="text-muted small">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end pe-3 fw-bold text-success fs-6">
+                                ฿{{ "{:,.2f}".format(c.total_revenue) }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Revenue by Payment Method -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold text-dark mb-0">
+                    <i class="bi bi-pie-chart-fill text-warning me-2"></i> สัดส่วนช่องทางการชำระเงิน
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for m in by_method %}
+                <div class="mb-3 p-3 bg-light rounded-3 border">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-bold text-dark">
+                            {% if m.payment_method == 'PromptPay' %}
+                                <i class="bi bi-qr-code text-primary me-1"></i> พร้อมเพย์ (PromptPay)
+                            {% elif m.payment_method == 'TrueMoney Wallet' %}
+                                <i class="bi bi-wallet2 text-warning me-1"></i> TrueMoney Wallet
+                            {% elif m.payment_method == 'Mastercard' %}
+                                <i class="bi bi-credit-card text-danger me-1"></i> Mastercard
+                            {% else %}
+                                <i class="bi bi-ticket-perforated text-success me-1"></i> {{ m.payment_method }}
+                            {% endif %}
+                        </span>
+                        <span class="badge bg-dark">{{ m.transaction_count }} รายการ</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted small">ยอดเงินรวม:</span>
+                        <span class="fw-bold text-success fs-5">฿{{ "{:,.2f}".format(m.total_amount) }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+                <div class="p-3 bg-primary bg-opacity-10 rounded-3 border border-primary border-opacity-25 mt-3">
+                    <div class="small text-muted">
+                        <i class="bi bi-info-circle-fill text-primary me-1"></i>
+                        ทุกการชำระเงินจะถูกเชื่อมโยงกับการลงทะเบียน (Enrollment) ในฐานข้อมูล MySQL โดยตรง
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Section 3: Detailed List of Paid Learners and their Courses -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+            <h5 class="fw-bold text-dark mb-0">
+                <i class="bi bi-person-lines-fill text-primary me-2"></i> รายชื่อผู้เรียนที่จ่ายเงินแล้ว และคอร์สที่กำลังเรียนอยู่
+            </h5>
+            <small class="text-muted">ข้อมูลแบบ Real-time จากตาราง learner, enrollment และ course</small>
+        </div>
+        <div style="min-width: 260px;">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+                <input type="text" id="learnerFilter" class="form-control" placeholder="ค้นหาชื่อผู้เรียน หรือคอร์ส...">
+            </div>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" id="paidLearnersTable">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3" style="width: 70px;">ID</th>
+                    <th>ผู้เรียน</th>
+                    <th>เบอร์โทร / อีเมล</th>
+                    <th>คอร์สที่ลงทะเบียน</th>
+                    <th>ยอดเงินที่ชำระ</th>
+                    <th>ช่องทางที่จ่าย</th>
+                    <th>วันที่ลงทะเบียน</th>
+                    <th>สถานะการเรียน</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in paid_learners %}
+                <tr>
+                    <td class="ps-3 fw-bold text-muted">#{{ p.enrollment_id }}</td>
+                    <td>
+                        <div class="fw-bold text-dark">{{ p.learner_name }}</div>
+                        <span class="badge bg-light text-secondary border" style="font-size: 0.75rem;">
+                            Learner ID: {{ p.learner_id }}
+                        </span>
+                    </td>
+                    <td class="small">
+                        <div><i class="bi bi-envelope me-1 text-muted"></i>{{ p.learner_email }}</div>
+                        <div><i class="bi bi-telephone me-1 text-muted"></i>{{ p.learner_phone or '-' }}</div>
+                    </td>
+                    <td>
+                        <span class="badge bg-secondary font-monospace">{{ p.course_code }}</span>
+                        <div class="fw-medium text-dark small mt-1">{{ p.course_title }}</div>
+                    </td>
+                    <td>
+                        <div class="fw-bold text-success fs-6">฿{{ "{:,.2f}".format(p.amount_paid) }}</div>
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark border px-2 py-1">
+                            {% if p.payment_method == 'PromptPay' %}
+                                <i class="bi bi-qr-code text-primary me-1"></i>PromptPay
+                            {% elif p.payment_method == 'TrueMoney Wallet' %}
+                                <i class="bi bi-wallet2 text-warning me-1"></i>TrueMoney
+                            {% elif p.payment_method == 'Mastercard' %}
+                                <i class="bi bi-credit-card text-danger me-1"></i>Mastercard
+                            {% else %}
+                                <i class="bi bi-ticket-perforated text-success me-1"></i>{{ p.payment_method }}
+                            {% endif %}
+                        </span>
+                    </td>
+                    <td class="text-muted small">
+                        {{ p.enrollment_date.strftime('%d/%m/%Y %H:%M') if p.enrollment_date is not string and p.enrollment_date else p.enrollment_date }}
+                    </td>
+                    <td>
+                        {% if p.status == 'COMPLETED' %}
+                            <span class="badge badge-completed"><i class="bi bi-check-circle me-1"></i>COMPLETED</span>
+                        {% elif p.status == 'IN_PROGRESS' %}
+                            <span class="badge badge-in-progress"><i class="bi bi-hourglass-split me-1"></i>IN_PROGRESS (กำลังเรียน)</span>
+                        {% elif p.status == 'ENROLLED' %}
+                            <span class="badge badge-enrolled"><i class="bi bi-person-check me-1"></i>ENROLLED</span>
+                        {% else %}
+                            <span class="badge badge-dropped"><i class="bi bi-x-circle me-1"></i>DROPPED</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- SQL Box สำหรับนำเสนออาจารย์ -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-dark text-white py-3">
+        <h6 class="fw-bold mb-0">
+            <i class="bi bi-terminal me-2"></i> คำสั่ง SQL ที่ใช้ประมวลผลรายงาน Money Management (Backend Query)
+        </h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="sql-box rounded-0 mb-0">
+<span class="text-muted">-- 1. SQL สรุปรายได้รวมและจำนวนผู้เรียนทั้งหมด</span>
+SELECT 
+    COUNT(*) AS total_transactions,
+    COUNT(DISTINCT learner_id) AS total_paid_learners,
+    SUM(amount_paid) AS total_revenue,
+    COUNT(CASE WHEN status = 'IN_PROGRESS' THEN 1 END) AS active_studying_count,
+    COUNT(CASE WHEN status = 'COMPLETED' THEN 1 END) AS completed_count
+FROM enrollment
+WHERE status != 'DROPPED';
+
+<span class="text-muted">-- 2. SQL สรุปรายได้แยกตามแต่ละคอร์สเรียน</span>
+SELECT 
+    c.course_id, c.course_code, c.title AS course_title, c.level, c.price,
+    COUNT(e.enrollment_id) AS total_enrolled,
+    SUM(CASE WHEN e.status != 'DROPPED' THEN e.amount_paid ELSE 0 END) AS total_revenue
+FROM course c
+LEFT JOIN enrollment e ON c.course_id = e.course_id
+GROUP BY c.course_id, c.course_code, c.title, c.level, c.price
+ORDER BY total_revenue DESC;
+
+<span class="text-muted">-- 3. SQL ดึงรายชื่อผู้เรียนที่จ่ายเงินแล้ว กำลังเรียนคอร์สอะไรอยู่</span>
+SELECT 
+    e.enrollment_id, e.enrollment_date, e.status, e.payment_method, e.amount_paid,
+    CONCAT(l.first_name, ' ', l.last_name) AS learner_name,
+    l.email, l.phone, c.course_code, c.title AS course_title
+FROM enrollment e
+JOIN learner l ON e.learner_id = l.learner_id
+JOIN course c ON e.course_id = c.course_id
+ORDER BY e.enrollment_date DESC;
+        </div>
+    </div>
+</div>
+
+<script>
+    // ค้นหาในตารางผู้เรียนแบบ Real-time
+    document.getElementById('learnerFilter').addEventListener('keyup', function() {
+        const query = this.value.toLowerCase();
+        const rows = document.querySelectorAll('#paidLearnersTable tbody tr');
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            row.style.display = text.includes(query) ? '' : 'none';
+        });
+    });
+</script>
+{% endblock %}

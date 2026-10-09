@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block title %}การลงทะเบียนเรียน - ระบบลงทะเบียนคอร์สออนไลน์{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold text-dark mb-1">
+            <i class="bi bi-card-checklist text-indigo me-2"></i> การลงทะเบียนเรียน (Enrollments)
+        </h2>
+        <p class="text-muted mb-0">ความสัมพันธ์แบบ Many-to-Many (M:N) ระหว่างผู้เรียน (Learner) และคอร์สเรียน (Course)</p>
+    </div>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEnrollmentModal">
+        <i class="bi bi-plus-circle me-1"></i> ลงทะเบียนเรียนใหม่
+    </button>
+</div>
+
+<!-- Enrollments Table Card -->
+<div class="card shadow-sm border-0">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3" style="width: 70px;">ID</th>
+                    <th>ผู้เรียน (Learner)</th>
+                    <th>คอร์สเรียน (Course)</th>
+                    <th>ยอดชำระ / ช่องทาง</th>
+                    <th>วันที่ลงทะเบียน</th>
+                    <th>สถานะการเรียน</th>
+                    <th>วันที่เรียนจบ</th>
+                    <th class="text-end pe-3" style="width: 140px;">จัดการ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in enrollments %}
+                <tr>
+                    <td class="ps-3 fw-bold text-muted">{{ e.enrollment_id }}</td>
+                    <td>
+                        <div class="fw-medium text-dark">{{ e.learner_name }}</div>
+                        <div class="small text-muted font-monospace">{{ e.learner_email }}</div>
+                    </td>
+                    <td>
+                        <span class="badge bg-secondary font-monospace">{{ e.course_code }}</span>
+                        <div class="fw-medium text-dark small mt-1">{{ e.course_title }}</div>
+                    </td>
+                    <td>
+                        <div class="fw-bold text-success">฿{{ "{:,.2f}".format(e.amount_paid or 0) }}</div>
+                        <span class="badge bg-light text-dark border small mt-1">
+                            <i class="bi bi-wallet2 me-1"></i>{{ e.payment_method or 'PromptPay' }}
+                        </span>
+                    </td>
+                    <td class="text-muted small">
+                        {{ e.enrollment_date.strftime('%d/%m/%Y %H:%M') if e.enrollment_date is not string and e.enrollment_date else e.enrollment_date }}
+                    </td>
+                    <td>
+                        {% if e.status == 'COMPLETED' %}
+                            <span class="badge badge-completed"><i class="bi bi-check-circle me-1"></i>COMPLETED</span>
+                        {% elif e.status == 'IN_PROGRESS' %}
+                            <span class="badge badge-in-progress"><i class="bi bi-hourglass-split me-1"></i>IN_PROGRESS</span>
+                        {% elif e.status == 'ENROLLED' %}
+                            <span class="badge badge-enrolled"><i class="bi bi-person-check me-1"></i>ENROLLED</span>
+                        {% else %}
+                            <span class="badge badge-dropped"><i class="bi bi-x-circle me-1"></i>DROPPED</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-muted small">
+                        {% if e.completion_date %}
+                            <i class="bi bi-calendar-check text-success me-1"></i>
+                            {{ e.completion_date.strftime('%d/%m/%Y %H:%M') if e.completion_date is not string else e.completion_date }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="text-end pe-3">
+                        <button type="button" class="btn btn-sm btn-outline-secondary me-1" 
+                                data-bs-toggle="modal" data-bs-target="#editStatusModal{{ e.enrollment_id }}" title="อัปเดตสถานะ">
+                            <i class="bi bi-arrow-repeat"></i>
+                        </button>
+                        <form action="{{ url_for('delete_enrollment_route', enrollment_id=e.enrollment_id) }}" method="POST" class="d-inline" onsubmit="return confirm('ยืนยันการยกเลิกการลงทะเบียนนี้?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="ยกเลิก">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+
+                <!-- Edit Status Modal -->
+                <div class="modal fade" id="editStatusModal{{ e.enrollment_id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <form action="{{ url_for('update_enrollment_status_route', enrollment_id=e.enrollment_id) }}" method="POST">
+                                <div class="modal-header">
+                                    <h5 class="modal-title fw-bold">อัปเดตสถานะการเรียน #{{ e.enrollment_id }}</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p class="mb-2"><strong>ผู้เรียน:</strong> {{ e.learner_name }}</p>
+                                    <p class="mb-3"><strong>คอร์สเรียน:</strong> {{ e.course_code }} - {{ e.course_title }}</p>
+                                    <div class="mb-3">
+                                        <label class="form-label">เลือกสถานะใหม่</label>
+                                        <select name="status" class="form-select">
+                                            <option value="ENROLLED" {% if e.status == 'ENROLLED' %}selected{% endif %}>ENROLLED (ลงทะเบียนแล้ว)</option>
+                                            <option value="IN_PROGRESS" {% if e.status == 'IN_PROGRESS' %}selected{% endif %}>IN_PROGRESS (กำลังเรียน)</option>
+                                            <option value="COMPLETED" {% if e.status == 'COMPLETED' %}selected{% endif %}>COMPLETED (เรียนจบแล้ว)</option>
+                                            <option value="DROPPED" {% if e.status == 'DROPPED' %}selected{% endif %}>DROPPED (ถอนการเรียน)</option>
+                                        </select>
+                                        <div class="form-text small">หากเลือก COMPLETED ระบบจะบันทึกเวลาเรียนจบให้อัตโนมัติ</div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-light border" data-bs-dismiss="modal">ยกเลิก</button>
+                                    <button type="submit" class="btn btn-primary">บันทึกสถานะ</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Enrollment Modal -->
+<div class="modal fade" id="addEnrollmentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form action="{{ url_for('enroll_course_route') }}" method="POST" id="modalEnrollForm">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-1 text-primary"></i> ลงทะเบียนเรียน</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">เลือกผู้เรียน (Learner)</label>
+                        <select name="learner_id" id="modalLearnerSelect" class="form-select" required>
+                            <option value="">-- กรุณาเลือกผู้เรียน --</option>
+                            {% for l in learners %}
+                            <option value="{{ l.learner_id }}">{{ l.first_name }} {{ l.last_name }} ({{ l.email }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">เลือกคอร์สเรียน (Course)</label>
+                        <select name="course_id" id="modalCourseSelect" class="form-select" required>
+                            <option value="">-- กรุณาเลือกคอร์สเรียน --</option>
+                            {% for c in courses %}
+                            <option value="{{ c.course_id }}" {% if prefill_course_id == c.course_id %}selected{% endif %}>
+                                {{ c.course_code }} - {{ c.title }} 
+                                {% if c.prerequisite_title %}[บังคับผ่าน {{ c.prerequisite_code or 'วิชาบังคับก่อน' }}]{% endif %}
+                                (฿{{ "{:,.2f}".format(c.price) }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Live Prerequisite Check Feedback inside Modal -->
+                    <div id="modalEligBox" class="mb-3 d-none">
+                        <div id="modalEligDanger" class="alert alert-danger py-2 px-3 small mb-0 d-none">
+                            <i class="bi bi-shield-x me-2 text-danger fs-5 align-middle"></i>
+                            <strong class="d-inline-block text-danger">ไม่สามารถลงทะเบียนได้:</strong>
+                            <div id="modalEligDangerMsg" class="mt-1 text-dark"></div>
+                        </div>
+                        <div id="modalEligSuccess" class="alert alert-success py-2 px-3 small mb-0 d-none">
+                            <i class="bi bi-shield-check me-2 text-success fs-5 align-middle"></i>
+                            <span id="modalEligSuccessMsg" class="text-success fw-medium">ผ่านเงื่อนไขวิชาบังคับก่อน พร้อมลงทะเบียน</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">สถานะเริ่มต้น</label>
+                        <select name="status" class="form-select">
+                            <option value="ENROLLED">ENROLLED (ลงทะเบียนแล้ว)</option>
+                            <option value="IN_PROGRESS">IN_PROGRESS (เริ่มเรียนทันที)</option>
+                            <option value="COMPLETED">COMPLETED (เรียนจบแล้ว)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light border" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" id="modalEnrollSubmitBtn" class="btn btn-primary">ยืนยันการลงทะเบียน</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ตรวจสอบเงื่อนไข Prerequisite และการลงทะเบียนซ้ำใน Modal แบบ Real-time
+    const modalLearner = document.getElementById('modalLearnerSelect');
+    const modalCourse = document.getElementById('modalCourseSelect');
+    const modalEligBox = document.getElementById('modalEligBox');
+    const modalEligDanger = document.getElementById('modalEligDanger');
+    const modalEligDangerMsg = document.getElementById('modalEligDangerMsg');
+    const modalEligSuccess = document.getElementById('modalEligSuccess');
+    const modalEligSuccessMsg = document.getElementById('modalEligSuccessMsg');
+    const modalSubmitBtn = document.getElementById('modalEnrollSubmitBtn');
+
+    async function checkModalEligibility() {
+        const lid = modalLearner ? modalLearner.value : '';
+        const cid = modalCourse ? modalCourse.value : '';
+
+        if (!lid || !cid) {
+            if (modalEligBox) modalEligBox.classList.add('d-none');
+            if (modalSubmitBtn) {
+                modalSubmitBtn.disabled = false;
+                modalSubmitBtn.className = 'btn btn-primary';
+                modalSubmitBtn.innerText = 'ยืนยันการลงทะเบียน';
+            }
+            return;
+        }
+
+        try {
+            const resp = await fetch(`/api/check-prerequisite?learner_id=${lid}&course_id=${cid}`);
+            const data = await resp.json();
+
+            if (!data.ok) return;
+
+            if (modalEligBox) modalEligBox.classList.remove('d-none');
+
+            if (!data.can_enroll) {
+                if (modalEligDanger) modalEligDanger.classList.remove('d-none');
+                if (modalEligSuccess) modalEligSuccess.classList.add('d-none');
+                if (modalEligDangerMsg) modalEligDangerMsg.innerText = data.message;
+                if (modalSubmitBtn) {
+                    modalSubmitBtn.disabled = true;
+                    modalSubmitBtn.className = 'btn btn-secondary opacity-75';
+                    modalSubmitBtn.innerText = 'ไม่สามารถลงทะเบียนได้ (ไม่ผ่านเงื่อนไข)';
+                }
+            } else {
+                if (modalEligDanger) modalEligDanger.classList.add('d-none');
+                if (modalEligSuccess) modalEligSuccess.classList.remove('d-none');
+                if (modalEligSuccessMsg) {
+                    modalEligSuccessMsg.innerText = data.prereq_required 
+                        ? `ผ่านวิชาบังคับก่อน (${data.prereq_code}) แล้ว พร้อมลงทะเบียน` 
+                        : 'คอร์สนี้ไม่มีวิชาบังคับก่อน สามารถลงทะเบียนได้ทันที';
+                }
+                if (modalSubmitBtn) {
+                    modalSubmitBtn.disabled = false;
+                    modalSubmitBtn.className = 'btn btn-primary';
+                    modalSubmitBtn.innerText = 'ยืนยันการลงทะเบียน';
+                }
+            }
+        } catch (err) {
+            console.error('Prerequisite check error:', err);
+        }
+    }
+
+    if (modalLearner) modalLearner.addEventListener('change', checkModalEligibility);
+    if (modalCourse) modalCourse.addEventListener('change', checkModalEligibility);
+
+    // ตรวจสอบทันทีหากมี prefill_course_id
+    if (modalCourse && modalCourse.value && modalLearner && modalLearner.value) {
+        checkModalEligibility();
+    }
+</script>
+{% endblock %}

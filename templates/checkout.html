@@ -1,0 +1,465 @@
+{% extends "base.html" %}
+
+{% block title %}ชำระเงินและลงทะเบียนเรียน - {{ course.title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <!-- Breadcrumb & Back -->
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> กลับหน้าหลัก
+                </a>
+            </div>
+            <div class="text-muted small">
+                <i class="bi bi-shield-lock-fill text-success me-1"></i> ระบบรับชำระเงินปลอดภัย (Mock Payment Gateway)
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- Left Column: Course Details & Subsequent Courses -->
+            <div class="col-lg-5">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <span class="badge bg-secondary font-monospace mb-1">{{ course.course_code }}</span>
+                        {% if course.level == 'Beginner' %}
+                            <span class="badge badge-beginner">Beginner</span>
+                        {% elif course.level == 'Intermediate' %}
+                            <span class="badge badge-intermediate">Intermediate</span>
+                        {% else %}
+                            <span class="badge badge-advanced">Advanced</span>
+                        {% endif %}
+                        <h4 class="fw-bold text-dark mb-0 mt-2">{{ course.title }}</h4>
+                    </div>
+                    <div class="card-body">
+                        <!-- Price Highlight -->
+                        <div class="p-3 bg-light rounded-3 mb-3 border">
+                            <div class="text-muted small">ยอดชำระสุทธิ (Net Amount):</div>
+                            <div class="display-6 fw-bold text-success">
+                                ฿{{ "{:,.2f}".format(course.price) }}
+                            </div>
+                            <div class="small text-muted mt-1">
+                                <i class="bi bi-check-circle-fill text-success me-1"></i> รวมภาษีและค่าสื่อการเรียนทั้งหมดแล้ว
+                            </div>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <h6 class="fw-bold text-secondary mb-1">
+                                <i class="bi bi-info-circle me-1"></i> รายละเอียดคอร์ส:
+                            </h6>
+                            <p class="text-muted small mb-0">
+                                {{ course.description or 'คอร์สเรียนคุณภาพเพื่อการพัฒนาทักษะทางด้านคอมพิวเตอร์และการเขียนโปรแกรม' }}
+                            </p>
+                        </div>
+
+                        <!-- Prerequisite Info -->
+                        <div class="p-3 bg-light rounded-3 border mb-3">
+                            <div class="fw-bold small text-secondary mb-1">
+                                <i class="bi bi-link-45deg text-primary"></i> วิชาบังคับก่อน (Prerequisite):
+                            </div>
+                            {% if course.prerequisite_title %}
+                                <div class="text-primary fw-medium small mb-2">
+                                    <span class="badge bg-primary me-1">
+                                        {{ course.prerequisite_code }}
+                                    </span>
+                                    {{ course.prerequisite_title }}
+                                </div>
+                                <div class="p-2 rounded bg-danger-subtle border border-danger-subtle text-danger small">
+                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                    <strong>เงื่อนไขบังคับ:</strong> ผู้เรียนต้องลงทะเบียนและเรียนจบวิชานี้ (สถานะ <code class="text-danger fw-bold">COMPLETED</code>) ก่อนเท่านั้น จึงจะสามารถลงทะเบียนคอร์สนี้ได้
+                                </div>
+                            {% else %}
+                                <div class="text-success small fw-medium">
+                                    <i class="bi bi-check2-circle me-1"></i> ไม่มีวิชาบังคับก่อน (สามารถเริ่มเรียนได้ทันที)
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Next Courses Pathway (เรียนจบแล้วต่อยอดวิชาไหนได้บ้าง) -->
+                        <div class="p-3 bg-primary bg-opacity-10 rounded-3 border border-primary border-opacity-25">
+                            <div class="fw-bold small text-primary mb-2">
+                                <i class="bi bi-signpost-split-fill me-1"></i> เส้นทางการต่อยอด (เรียนจบแล้วไปต่อวิชาไหนได้?):
+                            </div>
+                            {% if subsequent_courses %}
+                                <div class="text-muted small mb-2">
+                                    เมื่อเรียนจบคอร์สนี้ คุณจะมีคุณสมบัติพร้อมลงเรียนต่อในวิชาดังต่อไปนี้ทันที:
+                                </div>
+                                <ul class="list-unstyled mb-0">
+                                    {% for sc in subsequent_courses %}
+                                    <li class="d-flex align-items-center gap-2 mb-2 p-2 bg-white rounded border small">
+                                        <span class="badge bg-secondary font-monospace">{{ sc.course_code }}</span>
+                                        <div class="flex-grow-1">
+                                            <div class="fw-bold text-dark">{{ sc.title }}</div>
+                                            <span class="badge {% if sc.level == 'Intermediate' %}badge-intermediate{% else %}badge-advanced{% endif %}">
+                                                {{ sc.level }}
+                                            </span>
+                                            <span class="text-success fw-bold ms-1">฿{{ "{:,.2f}".format(sc.price) }}</span>
+                                        </div>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <div class="text-secondary small">
+                                    <i class="bi bi-stars text-warning me-1"></i>
+                                    คอร์สนี้เป็นคอร์สระดับสูงหรือคอร์สเฉพาะทาง เมื่อเรียนจบสามารถนำความรู้และทักษะไปทำโปรเจกต์จริง หรือต่อยอดในสายอาชีพได้ทันที!
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Checkout Form & Payment Methods -->
+            <div class="col-lg-7">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h4 class="fw-bold text-dark mb-0">
+                            <i class="bi bi-credit-card-fill text-primary me-2"></i> ขั้นตอนการชำระเงินและลงทะเบียน
+                        </h4>
+                    </div>
+                    <div class="card-body p-4">
+                        <form action="{{ url_for('process_payment', course_id=course.course_id) }}" method="POST" id="paymentForm">
+                            <!-- Step 1: Select Student -->
+                            <div class="mb-4">
+                                <label class="form-label fw-bold text-dark">
+                                    <span class="badge bg-primary rounded-circle me-1">1</span> เลือกผู้เรียนที่ต้องการลงทะเบียน:
+                                </label>
+                                <select name="learner_id" id="learnerSelect" class="form-select form-select-lg" required>
+                                    <option value="" disabled selected>-- กรุณาเลือกผู้เรียน --</option>
+                                    {% for l in learners %}
+                                        <option value="{{ l.learner_id }}"
+                                                data-can-enroll="{{ '1' if l.can_enroll else '0' }}"
+                                                data-already-enrolled="{{ '1' if l.already_enrolled else '0' }}"
+                                                data-prereq-satisfied="{{ '1' if l.prereq_satisfied else '0' }}"
+                                                data-reason="{{ l.eligibility_message }}"
+                                                {% if not l.can_enroll %}class="text-muted bg-light"{% endif %}>
+                                            #{{ l.learner_id }} - {{ l.first_name }} {{ l.last_name }} ({{ l.email }})
+                                            {% if l.already_enrolled %}
+                                                [⚠️ ลงทะเบียนแล้ว - {{ l.current_status_th }}]
+                                            {% elif not l.prereq_satisfied %}
+                                                [🚫 ยังไม่ผ่านวิชาบังคับก่อน]
+                                            {% else %}
+                                                [✅ พร้อมลงทะเบียน]
+                                            {% endif %}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text small">
+                                    หากยังไม่มีรายชื่อ สามารถไปเพิ่มข้อมูลที่เมนู <a href="{{ url_for('learners') }}" target="_blank">จัดการผู้เรียน</a>
+                                </div>
+
+                                <!-- Eligibility Dynamic Alert -->
+                                <div id="eligibilityFeedback" class="mt-3 d-none">
+                                    <div id="eligibilityAlertDanger" class="alert alert-danger border-danger shadow-sm py-3 px-3 d-none mb-0">
+                                        <div class="d-flex align-items-start">
+                                            <i class="bi bi-shield-x fs-3 text-danger me-3 mt-1"></i>
+                                            <div>
+                                                <h6 class="fw-bold text-danger mb-1">ไม่สามารถลงทะเบียนคอร์สนี้ได้</h6>
+                                                <p id="eligibilityDangerText" class="mb-0 small text-dark"></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="eligibilityAlertSuccess" class="alert alert-success border-success shadow-sm py-2 px-3 d-none mb-0">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-shield-check fs-4 text-success me-2"></i>
+                                            <span class="small fw-medium text-success">ผู้เรียนมีคุณสมบัติผ่านเงื่อนไขครบถ้วน สามารถลงทะเบียนและชำระเงินได้</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step 2: Payment Method Selection -->
+                            <div class="mb-4">
+                                <label class="form-label fw-bold text-dark mb-2">
+                                    <span class="badge bg-primary rounded-circle me-1">2</span> เลือกช่องทางการชำระเงิน:
+                                </label>
+                                
+                                <input type="hidden" name="payment_method" id="selectedPaymentMethod" value="PromptPay">
+
+                                <div class="row g-2 mb-3" id="paymentMethodButtons">
+                                    <div class="col-6 col-md-3">
+                                        <button type="button" class="btn btn-outline-primary w-100 py-3 text-center pay-method-btn active" data-method="PromptPay">
+                                            <i class="bi bi-qr-code-scan fs-3 d-block mb-1 text-primary"></i>
+                                            <span class="fw-bold small">พร้อมเพย์</span>
+                                            <div class="text-muted" style="font-size: 0.72rem;">PromptPay QR</div>
+                                        </button>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <button type="button" class="btn btn-outline-warning w-100 py-3 text-center pay-method-btn" data-method="TrueMoney Wallet">
+                                            <i class="bi bi-wallet2 fs-3 d-block mb-1 text-warning"></i>
+                                            <span class="fw-bold small text-dark">TrueMoney</span>
+                                            <div class="text-muted" style="font-size: 0.72rem;">วอลเล็ท</div>
+                                        </button>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <button type="button" class="btn btn-outline-danger w-100 py-3 text-center pay-method-btn" data-method="Mastercard">
+                                            <i class="bi bi-credit-card-2-front fs-3 d-block mb-1 text-danger"></i>
+                                            <span class="fw-bold small text-dark">Mastercard</span>
+                                            <div class="text-muted" style="font-size: 0.72rem;">บัตรเครดิต/เดบิต</div>
+                                        </button>
+                                    </div>
+                                    <div class="col-6 col-md-3">
+                                        <button type="button" class="btn btn-outline-success w-100 py-3 text-center pay-method-btn" data-method="บัตรทรูมันนี่">
+                                            <i class="bi bi-ticket-perforated fs-3 d-block mb-1 text-success"></i>
+                                            <span class="fw-bold small text-dark">บัตรทรูมันนี่</span>
+                                            <div class="text-muted" style="font-size: 0.72rem;">บัตรเงินสด 14 หลัก</div>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Payment Method Details Panels -->
+                                <div class="border rounded-3 p-3 bg-light">
+                                    <!-- 1. PromptPay Panel -->
+                                    <div class="pay-panel text-center" id="panel-PromptPay">
+                                        <div class="bg-primary text-white py-2 px-3 rounded-top d-inline-block w-100 mb-3 fw-bold">
+                                            <i class="bi bi-qr-code me-1"></i> Thai QR Payment (PromptPay)
+                                        </div>
+                                        <div class="d-flex justify-content-center mb-3">
+                                            <!-- Mock QR Code SVG -->
+                                            <div class="p-3 bg-white border rounded shadow-sm d-inline-block text-center" style="max-width: 240px;">
+                                                <svg width="180" height="180" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="img-fluid">
+                                                    <!-- Border corners -->
+                                                    <rect width="100" height="100" fill="#ffffff" />
+                                                    <!-- Top-left finder pattern -->
+                                                    <rect x="5" y="5" width="28" height="28" fill="#1e293b" />
+                                                    <rect x="9" y="9" width="20" height="20" fill="#ffffff" />
+                                                    <rect x="13" y="13" width="12" height="12" fill="#1e293b" />
+                                                    <!-- Top-right finder pattern -->
+                                                    <rect x="67" y="5" width="28" height="28" fill="#1e293b" />
+                                                    <rect x="71" y="9" width="20" height="20" fill="#ffffff" />
+                                                    <rect x="75" y="13" width="12" height="12" fill="#1e293b" />
+                                                    <!-- Bottom-left finder pattern -->
+                                                    <rect x="5" y="67" width="28" height="28" fill="#1e293b" />
+                                                    <rect x="9" y="71" width="20" height="20" fill="#ffffff" />
+                                                    <rect x="13" y="75" width="12" height="12" fill="#1e293b" />
+                                                    <!-- Mock QR Data Blocks -->
+                                                    <rect x="38" y="8" width="6" height="6" fill="#1e293b" />
+                                                    <rect x="48" y="12" width="10" height="6" fill="#1e293b" />
+                                                    <rect x="38" y="22" width="8" height="8" fill="#1e293b" />
+                                                    <rect x="50" y="24" width="8" height="6" fill="#1e293b" />
+                                                    <rect x="10" y="38" width="16" height="6" fill="#1e293b" />
+                                                    <rect x="30" y="38" width="12" height="8" fill="#1e293b" />
+                                                    <rect x="46" y="36" width="8" height="12" fill="#1e293b" />
+                                                    <rect x="60" y="38" width="14" height="6" fill="#1e293b" />
+                                                    <rect x="80" y="38" width="12" height="8" fill="#1e293b" />
+                                                    <rect x="12" y="48" width="10" height="10" fill="#1e293b" />
+                                                    <rect x="28" y="50" width="14" height="8" fill="#1e293b" />
+                                                    <rect x="48" y="52" width="10" height="10" fill="#1e293b" />
+                                                    <rect x="64" y="48" width="8" height="14" fill="#1e293b" />
+                                                    <rect x="76" y="52" width="16" height="6" fill="#1e293b" />
+                                                    <rect x="38" y="66" width="6" height="14" fill="#1e293b" />
+                                                    <rect x="48" y="68" width="12" height="8" fill="#1e293b" />
+                                                    <rect x="66" y="68" width="10" height="12" fill="#1e293b" />
+                                                    <rect x="80" y="66" width="12" height="6" fill="#1e293b" />
+                                                    <rect x="40" y="84" width="12" height="8" fill="#1e293b" />
+                                                    <rect x="56" y="82" width="16" height="10" fill="#1e293b" />
+                                                    <rect x="76" y="80" width="16" height="12" fill="#1e293b" />
+                                                    <!-- PromptPay Logo Center Mock -->
+                                                    <rect x="42" y="42" width="16" height="16" rx="3" fill="#003d79" />
+                                                    <circle cx="50" cy="50" r="5" fill="#ffffff" />
+                                                </svg>
+                                                <div class="fw-bold text-dark mt-2 small">บริษัท คอร์สออนไลน์ จำกัด</div>
+                                                <div class="text-muted" style="font-size: 0.75rem;">PromptPay ID: 081-234-5678</div>
+                                                <div class="fw-bold text-primary fs-5 mt-1">฿{{ "{:,.2f}".format(course.price) }}</div>
+                                            </div>
+                                        </div>
+                                        <div class="small text-muted mb-1">
+                                            <i class="bi bi-clock-history me-1"></i> QR Code มีอายุการใช้งาน <span class="badge bg-danger" id="qrTimer">14:59</span> นาที
+                                        </div>
+                                        <div class="small text-secondary">
+                                            เปิดแอปธนาคารของท่าน แล้วสแกน QR เพื่อชำระเงิน จากนั้นกดปุ่มยืนยันด้านล่าง
+                                        </div>
+                                    </div>
+
+                                    <!-- 2. TrueMoney Wallet Panel -->
+                                    <div class="pay-panel d-none" id="panel-TrueMoney Wallet">
+                                        <div class="bg-warning text-dark py-2 px-3 rounded-top w-100 mb-3 fw-bold">
+                                            <i class="bi bi-wallet2 me-1"></i> TrueMoney Wallet
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-bold">เบอร์โทรศัพท์ที่ผูกกับ TrueMoney Wallet:</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text bg-white"><i class="bi bi-phone"></i></span>
+                                                <input type="text" class="form-control" placeholder="08x-xxx-xxxx" value="089-123-4567">
+                                            </div>
+                                            <div class="form-text small">ระบบจะส่งรหัส OTP จำลองไปยังเบอร์นี้</div>
+                                        </div>
+                                        <div class="p-3 bg-white rounded border small text-muted">
+                                            <div class="fw-bold text-dark mb-1">ขั้นตอนการชำระเงิน:</div>
+                                            1. ตรวจสอบยอดเงินคงเหลือในกระเป๋า TrueMoney Wallet ให้เพียงพอ<br>
+                                            2. กดยืนยันการชำระเงินด้านล่างเพื่อตัดยอด ฿{{ "{:,.2f}".format(course.price) }} ทันที
+                                        </div>
+                                    </div>
+
+                                    <!-- 3. Mastercard Panel -->
+                                    <div class="pay-panel d-none" id="panel-Mastercard">
+                                        <div class="bg-dark text-white py-2 px-3 rounded-top w-100 mb-3 fw-bold d-flex justify-content-between align-items-center">
+                                            <span><i class="bi bi-credit-card me-1"></i> Mastercard / บัตรเครดิต & เดบิต</span>
+                                            <span class="badge bg-danger">Mastercard</span>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-bold">หมายเลขบัตร (Card Number):</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text bg-white"><i class="bi bi-credit-card-2-front"></i></span>
+                                                <input type="text" class="form-control font-monospace" placeholder="5412 7500 0000 1234" value="5412 •••• •••• 1234">
+                                            </div>
+                                        </div>
+                                        <div class="row g-2 mb-3">
+                                            <div class="col-6">
+                                                <label class="form-label small fw-bold">วันหมดอายุ (MM/YY):</label>
+                                                <input type="text" class="form-control font-monospace" placeholder="12/28" value="12/28">
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label small fw-bold">รหัส CVV (3 หลัก):</label>
+                                                <input type="password" class="form-control font-monospace" placeholder="•••" value="888" maxlength="3">
+                                            </div>
+                                        </div>
+                                        <div class="mb-2">
+                                            <label class="form-label small fw-bold">ชื่อผู้ถือบัตร (Cardholder Name):</label>
+                                            <input type="text" class="form-control" placeholder="SOMCHAI JAIDEE" value="STUDENT ONLINE">
+                                        </div>
+                                    </div>
+
+                                    <!-- 4. บัตรทรูมันนี่ Panel -->
+                                    <div class="pay-panel d-none" id="panel-บัตรทรูมันนี่">
+                                        <div class="bg-success text-white py-2 px-3 rounded-top w-100 mb-3 fw-bold">
+                                            <i class="bi bi-ticket-perforated me-1"></i> บัตรเงินสดทรูมันนี่ (TrueMoney Cash Card)
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-bold">รหัสบัตรเงินสดทรูมันนี่ (14 หลัก):</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text bg-white"><i class="bi bi-key-fill"></i></span>
+                                                <input type="text" class="form-control font-monospace text-center fs-5 letter-spacing-2" 
+                                                       placeholder="12345678901234" value="98765432101234" maxlength="14">
+                                            </div>
+                                            <div class="form-text small">ขูดรหัสบัตรเติมเงิน 14 หลักจากด้านหลังบัตรเพื่อกรอก</div>
+                                        </div>
+                                        <div class="p-3 bg-white rounded border small text-muted">
+                                            <div class="fw-bold text-success mb-1">หมายเหตุ:</div>
+                                            ระบบจะหักมูลค่าบัตรตามราคาคอร์ส ฿{{ "{:,.2f}".format(course.price) }} บาท อัตโนมัติ
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Summary & Submit CTA -->
+                            <div class="d-flex justify-content-between align-items-center p-3 bg-white border rounded-3 mb-3">
+                                <div>
+                                    <div class="text-muted small">ช่องทางที่เลือก:</div>
+                                    <div class="fw-bold text-dark" id="displayPaymentMethod">พร้อมเพย์ (PromptPay)</div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="text-muted small">ยอดรวมทั้งหมด:</div>
+                                    <div class="fw-bold text-success fs-4">฿{{ "{:,.2f}".format(course.price) }}</div>
+                                </div>
+                            </div>
+
+                            <button type="submit" id="btnConfirmPay" class="btn btn-success btn-lg w-100 fw-bold shadow-sm py-3 mb-2">
+                                <i class="bi bi-check2-circle me-1"></i> ยืนยันการชำระเงินและเริ่มเรียนทันที
+                            </button>
+                            <div class="text-center small text-muted">
+                                <i class="bi bi-info-circle me-1"></i> เมื่อกดยืนยัน ระบบจะบันทึกสถานะเป็น <strong>IN_PROGRESS</strong> พร้อมเริ่มเรียนทันที
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // สลับช่องทางการชำระเงินเมื่อคลิกปุ่ม
+    document.querySelectorAll('.pay-method-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            // ถอด active เดิมออก
+            document.querySelectorAll('.pay-method-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+
+            const method = this.getAttribute('data-method');
+            document.getElementById('selectedPaymentMethod').value = method;
+            document.getElementById('displayPaymentMethod').innerText = method;
+
+            // ซ่อน panel ทั้งหมด แล้วแสดง panel ที่เลือก
+            document.querySelectorAll('.pay-panel').forEach(panel => panel.classList.add('d-none'));
+            const targetPanel = document.getElementById('panel-' + method);
+            if (targetPanel) {
+                targetPanel.classList.remove('d-none');
+            }
+        });
+    });
+
+    // ตรวจสอบความพร้อมของผู้เรียนในการลงทะเบียน (Prerequisite & Duplicate)
+    const learnerSelect = document.getElementById('learnerSelect');
+    const feedbackBox = document.getElementById('eligibilityFeedback');
+    const alertDanger = document.getElementById('eligibilityAlertDanger');
+    const dangerText = document.getElementById('eligibilityDangerText');
+    const alertSuccess = document.getElementById('eligibilityAlertSuccess');
+    const btnConfirmPay = document.getElementById('btnConfirmPay');
+
+    function updateEligibility() {
+        const selected = learnerSelect.options[learnerSelect.selectedIndex];
+        if (!selected || !selected.value) {
+            if (feedbackBox) feedbackBox.classList.add('d-none');
+            if (btnConfirmPay) {
+                btnConfirmPay.disabled = false;
+                btnConfirmPay.className = 'btn btn-success btn-lg w-100 fw-bold shadow-sm py-3 mb-2';
+                btnConfirmPay.innerHTML = '<i class="bi bi-check2-circle me-1"></i> ยืนยันการชำระเงินและเริ่มเรียนทันที';
+            }
+            return;
+        }
+
+        if (feedbackBox) feedbackBox.classList.remove('d-none');
+        const canEnroll = selected.getAttribute('data-can-enroll') === '1';
+        const reason = selected.getAttribute('data-reason');
+
+        if (!canEnroll) {
+            if (alertDanger) alertDanger.classList.remove('d-none');
+            if (alertSuccess) alertSuccess.classList.add('d-none');
+            if (dangerText) dangerText.innerText = reason || 'ผู้เรียนยังไม่ผ่านเกณฑ์การลงทะเบียนสำหรับคอร์สนี้';
+            if (btnConfirmPay) {
+                btnConfirmPay.disabled = true;
+                btnConfirmPay.className = 'btn btn-secondary btn-lg w-100 fw-bold shadow-sm py-3 mb-2 opacity-75';
+                btnConfirmPay.innerHTML = '<i class="bi bi-slash-circle me-1"></i> ไม่สามารถลงทะเบียนได้ (ติดเงื่อนไขวิชาบังคับก่อน)';
+            }
+        } else {
+            if (alertDanger) alertDanger.classList.add('d-none');
+            if (alertSuccess) alertSuccess.classList.remove('d-none');
+            if (btnConfirmPay) {
+                btnConfirmPay.disabled = false;
+                btnConfirmPay.className = 'btn btn-success btn-lg w-100 fw-bold shadow-sm py-3 mb-2';
+                btnConfirmPay.innerHTML = '<i class="bi bi-check2-circle me-1"></i> ยืนยันการชำระเงินและเริ่มเรียนทันที';
+            }
+        }
+    }
+
+    if (learnerSelect) {
+        learnerSelect.addEventListener('change', updateEligibility);
+        if (learnerSelect.value) {
+            updateEligibility();
+        }
+    }
+
+    // จำลองเวลานับถอยหลังของ QR Code
+    let timeLeft = 15 * 60;
+    const timerElement = document.getElementById('qrTimer');
+    if (timerElement) {
+        setInterval(() => {
+            if (timeLeft <= 0) return;
+            timeLeft--;
+            const m = Math.floor(timeLeft / 60);
+            const s = timeLeft % 60;
+            timerElement.innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }, 1000);
+    }
+</script>
+
+<style>
+    .pay-method-btn.active {
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        border-width: 2px;
+    }
+</style>
+{% endblock %}
